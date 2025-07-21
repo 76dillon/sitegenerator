@@ -1,4 +1,5 @@
 import os
+import re
 from markdown_blocks import markdown_to_html_node
 
 def extract_title(markdown):
@@ -10,7 +11,7 @@ def extract_title(markdown):
                 return line[1:].strip()
     raise Exception("No title found in markdown file")
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, basepath):
     #Verify if destination path exists. If not, create it
     if not os.path.exists(dest_dir_path):
         os.mkdir(dest_dir_path)
@@ -23,12 +24,12 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
             #Check if it's a markdown file
             if item[-3:] ==  ".md":
                 dest_path = dest_path.replace(".md", ".html")
-                generate_page(from_path, template_path, dest_path)
+                generate_page(from_path, template_path, dest_path, basepath)
         else:
-            generate_pages_recursive(from_path, template_path, dest_path)
+            generate_pages_recursive(from_path, template_path, dest_path, basepath)
 
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
     print(f"Generating page from {from_path} to {dest_path} using {template_path}")
     #Making directories in destination if they don't exist
     dir_name = os.path.dirname(dest_path)
@@ -52,6 +53,11 @@ def generate_page(from_path, template_path, dest_path):
     #Relace {{ Title }} and {{ Content }} in template with the actual title and html contents
     full_html = full_html.replace("{{ Title }}", title)
     full_html = full_html.replace("{{ Content }}", html_content)
+
+    #Replace instances of basepath "/" with "{basepath}"
+    pattern = r'(href|src)\s*=\s*([\'"])/'
+    replacement = r'\1=\2' + basepath
+    full_html = re.sub(pattern, replacement, full_html)
 
     with open(dest_path, "w", encoding="utf-8") as f:
         f.write(full_html)
